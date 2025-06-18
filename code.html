@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🖨️ نظام إدارة الطباعة</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="تطبيق لإدارة أعمال الطباعة والطباعين">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="إدارة الطباعة">
+
+    <!-- PWA Links -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16x16.png">
+    <link rel="apple-touch-icon" href="assets/icon-180x180.png">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="manifest.json" as="fetch" crossorigin="anonymous">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+            min-height: 100vh;
+            color: #f1f5f9;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f1f5f9;
+            margin: 0;
+        }
+
+        .tabs {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 16px;
+            padding: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 16px;
+            border: 1px solid transparent;
+        }
+
+        .tab:hover {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .content {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            color: #1e293b;
+        }
+
+        .search-container {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 20px 16px 50px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 18px;
+        }
+
+        .jobs-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .jobs-grid .job-card {
+            flex: 1 1 320px;
+            max-width: 450px;
+        }
+
+        .job-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .job-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .job-card.urgent {
+            border: 3px solid #ef4444;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            position: relative;
+            animation: urgentPulse 2s infinite;
+            box-shadow: 0 8px 32px rgba(239, 68, 68, 0.4);
+            order: -1;
+            transform: scale(1.02);
+        }
+
+        .job-card.urgent::before {
+            content: '🚨';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ef4444;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            animation: urgentBounce 1s infinite;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes urgentPulse {
+            0%, 100% {
+                box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+            }
+            50% {
+                box-shadow: 0 8px 32px rgba(239, 68, 68, 0.6);
+            }
+        }
+
+        @keyframes urgentBounce {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .job-card.in-progress {
+            border-left: 6px solid #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        }
+
+        .job-card.completed {
+            border-left: 6px solid #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            position: relative;
+        }
+
+        .job-card.completed::after {
+            content: '🔒';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #10b981;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .job-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e293b;
+            line-height: 1.3;
+        }
+
+        .job-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-urgent {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .status-progress {
+            background: #f59e0b;
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .status-completed {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .status-pending {
+            background: #f97316;
+            color: white;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+        }
+
+        .job-details {
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .job-detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+
+        .job-detail-label {
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .job-detail-value {
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .job-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #3b82f6;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 24px;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card.active {
+            border: 2px solid #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .stat-card.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #3b82f6;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .message {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .jobs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .job-actions {
+                flex-direction: column;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- العنوان الرئيسي -->
+        <div class="header">
+            <h1>🖨️ نظام إدارة الطباعة</h1>
+        </div>
+
+        <!-- التبويبات -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('jobs')">الأعمال</div>
+            <div class="tab" onclick="switchTab('add-job')">إضافة عمل</div>
+            <div class="tab" onclick="switchTab('printers')">الطباعين</div>
+        </div>
+
+        <!-- المحتوى -->
+        <div class="content">
+            <div id="messages"></div>
+
+            <!-- قسم الأعمال -->
+            <div id="jobs-section">
+                <!-- شريط البحث -->
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="البحث في الأعمال..." id="searchInput">
+                    <span class="search-icon">🔍</span>
+                </div>
+
+                <!-- الإحصائيات -->
+                <div class="stats-container">
+                    <div class="stat-card" id="stat-all" onclick="filterByStatus('all')">
+                        <div class="stat-number" id="totalJobs">0</div>
+                        <div class="stat-label">إجمالي الأعمال</div>
+                    </div>
+                    <div class="stat-card" id="stat-pending" onclick="filterByStatus('pending')">
+                        <div class="stat-number" id="pendingJobs">0</div>
+                        <div class="stat-label">في الانتظار</div>
+                    </div>
+                    <div class="stat-card" id="stat-progress" onclick="filterByStatus('in-progress')">
+                        <div class="stat-number" id="inProgressJobs">0</div>
+                        <div class="stat-label">قيد الطباعة</div>
+                    </div>
+                    <div class="stat-card" id="stat-completed" onclick="filterByStatus('completed')">
+                        <div class="stat-number" id="completedJobs">0</div>
+                        <div class="stat-label">مكتمل</div>
+                    </div>
+                </div>
+
+                <!-- قائمة الأعمال -->
+                <div id="jobsList" class="jobs-grid">
+                    <!-- سيتم ملؤها بـ JavaScript -->
+                </div>
+            </div>
+
+            <!-- قسم إضافة عمل -->
+            <div id="add-job-section" class="hidden">
+                <div class="form-section">
+                    <h2 style="margin-bottom: 24px; color: #1e293b; text-align: center;">➕ إضافة عمل طباعة جديد</h2>
+
+                    <form id="jobForm">
+                        <div class="form-group">
+                            <label class="form-label">اسم العمل *</label>
+                            <input type="text" class="form-input" id="jobName" placeholder="مثال: طباعة بروشورات" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">تفاصيل العمل</label>
+                            <textarea class="form-input form-textarea" id="jobDetails" placeholder="مثال: طباعة بروشورات - 4 ألوان - ورق مطفي - مقاس A4"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">اسم الطباع</label>
+                            <select class="form-input" id="printerNameSelect">
+                                <option value="">اختر الطباع...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">الكمية المطلوبة</label>
+                            <input type="text" class="form-input" id="totalQuantity" placeholder="مثال: 1000 قطعة">
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="isUrgent">
+                            <label for="isUrgent">⚡ عمل مستعجل</label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">💾 حفظ العمل</button>
+                            <button type="button" class="btn btn-danger" onclick="clearForm()">🗑️ مسح النموذج</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- قسم الطباعين -->
+            <div id="printers-section" class="hidden">
+                <div class="form-section">
+                    <h2 style="margin-bottom: 24px; color: #1e293b; text-align: center;">➕ إضافة طباع جديد</h2>
+
+                    <form id="printerForm">
+                        <div class="form-group">
+                            <label class="form-label">اسم الطباع *</label>
+                            <input type="text" class="form-input" id="printerName" placeholder="مثال: أحمد محمد" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">رقم الهاتف</label>
+                            <input type="text" class="form-input" id="printerPhone" placeholder="مثال: 01234567890">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">التخصص</label>
+                            <input type="text" class="form-input" id="printerSpecialty" placeholder="مثال: طباعة ديجيتال، أوفست">
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">👤 إضافة الطباع</button>
+                            <button type="button" class="btn btn-danger" onclick="clearPrinterForm()">🗑️ مسح النموذج</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="form-section">
+                    <h2 style="margin-bottom: 24px; color: #1e293b; text-align: center;">👥 قائمة الطباعين</h2>
+                    <div id="printersList">
+                        <!-- سيتم ملؤها بـ JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات النظام
+        let jobs = JSON.parse(localStorage.getItem('modernPrintingJobs')) || [];
+        let printers = JSON.parse(localStorage.getItem('modernPrintingPrinters')) || [];
+        let currentTab = 'jobs';
+        let currentFilter = 'all';
+        let jobCounter = parseInt(localStorage.getItem('modernPrintingJobCounter')) || 0;
+
+        // تسجيل Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('✅ تم تسجيل Service Worker بنجاح:', registration.scope);
+
+                        // التحقق من التحديثات
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    showMessage('🔄 تحديث جديد متاح! أعد تحميل الصفحة للحصول على أحدث إصدار', 'success');
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('❌ فشل في تسجيل Service Worker:', error);
+                    });
+            });
+        }
+
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', function() {
+            displayJobs();
+            updateStats();
+            displayPrinters();
+            loadSamplePrinters();
+
+            // تفعيل الفلتر الافتراضي
+            filterByStatus('all');
+
+            // ربط الأحداث
+            document.getElementById('jobForm').addEventListener('submit', addJob);
+            document.getElementById('searchInput').addEventListener('input', filterJobs);
+            document.getElementById('printerForm').addEventListener('submit', addPrinter);
+
+            showMessage('🖨️ نظام إدارة الطباعة جاهز للاستخدام', 'success');
+
+            // إضافة زر التثبيت للـ PWA
+            addInstallPrompt();
+        });
+
+        // تبديل التبويبات
+        function switchTab(tabName) {
+            // تحديث التبويبات
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // إخفاء جميع الأقسام
+            document.querySelectorAll('[id$="-section"]').forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            // إظهار القسم المحدد
+            document.getElementById(tabName + '-section').classList.remove('hidden');
+            currentTab = tabName;
+        }
+
+        // إضافة عمل جديد
+        function addJob(event) {
+            event.preventDefault();
+
+            const job = {
+                id: Date.now(),
+                jobNumber: (++jobCounter).toString(),
+                name: document.getElementById('jobName').value.trim(),
+                printerName: document.getElementById('printerNameSelect').value.trim() || 'غير محدد',
+                totalQuantity: document.getElementById('totalQuantity').value.trim() || 'غير محدد',
+                details: document.getElementById('jobDetails').value.trim(),
+                isUrgent: document.getElementById('isUrgent').checked,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+
+            if (!job.name) {
+                showMessage('❌ يرجى إدخال اسم العمل', 'error');
+                return;
+            }
+
+            jobs.push(job);
+            saveData();
+            displayJobs();
+            updateStats();
+            clearForm();
+
+            showMessage('✅ تم إضافة العمل بنجاح!', 'success');
+            switchTab('jobs');
+        }
+
+        // عرض الأعمال
+        function displayJobs() {
+            const container = document.getElementById('jobsList');
+
+            if (jobs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>لا توجد أعمال</h3>
+                        <p>ابدأ بإضافة عمل طباعة جديد</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = jobs.map(job => `
+                <div class="job-card ${job.status} ${job.isUrgent ? 'urgent' : ''}">
+                    <div class="job-header">
+                        <div class="job-title">${job.name}</div>
+                        <div class="job-status ${getStatusClass(job)}">
+                            ${getStatusText(job)}
+                        </div>
+                    </div>
+
+                    <div class="job-details">
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">الطباع:</span>
+                            <span class="job-detail-value">${job.printerName}</span>
+                        </div>
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">الكمية:</span>
+                            <span class="job-detail-value">${job.totalQuantity}</span>
+                        </div>
+                        ${job.details ? `
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">التفاصيل:</span>
+                            <span class="job-detail-value">${job.details}</span>
+                        </div>
+                        ` : ''}
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">التاريخ:</span>
+                            <span class="job-detail-value">${new Date(job.createdAt).toLocaleDateString('ar-EG')}</span>
+                        </div>
+                    </div>
+
+                    <div class="job-actions">
+                        <button class="btn btn-success" onclick="completeJob(${job.id})">
+                            ✅ إكمال
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteJob(${job.id})">
+                            🗑️ حذف
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // إكمال عمل
+        function completeJob(jobId) {
+            const job = jobs.find(j => j.id === jobId);
+            if (!job) return;
+
+            if (!confirm(`هل أنت متأكد من إكمال العمل: "${job.name}"؟`)) return;
+
+            job.status = 'completed';
+            job.completedAt = new Date().toISOString();
+
+            saveData();
+            displayJobs();
+            updateStats();
+            showMessage('✅ تم إكمال العمل بنجاح!', 'success');
+        }
+
+        // حذف عمل
+        function deleteJob(jobId) {
+            const job = jobs.find(j => j.id === jobId);
+            if (!job) return;
+
+            if (!confirm(`هل أنت متأكد من حذف العمل: "${job.name}"؟`)) return;
+
+            jobs = jobs.filter(j => j.id !== jobId);
+
+            saveData();
+            displayJobs();
+            updateStats();
+            showMessage('✅ تم حذف العمل بنجاح', 'success');
+        }
+
+        // فلترة حسب الحالة
+        function filterByStatus(status) {
+            currentFilter = status;
+
+            // تحديث مظهر المربعات
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
+            });
+
+            const activeCard = document.getElementById(`stat-${status}`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+
+            // تطبيق الفلتر
+            let filteredJobs = jobs;
+            if (status !== 'all') {
+                filteredJobs = jobs.filter(job => job.status === status);
+            }
+
+            displayFilteredJobs(filteredJobs);
+        }
+
+        // عرض الأعمال المفلترة
+        function displayFilteredJobs(filteredJobs) {
+            const container = document.getElementById('jobsList');
+
+            if (filteredJobs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>لا توجد أعمال</h3>
+                        <p>لا توجد أعمال تطابق الفلتر المحدد</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredJobs.map(job => `
+                <div class="job-card ${job.status} ${job.isUrgent ? 'urgent' : ''}">
+                    <div class="job-header">
+                        <div class="job-title">${job.name}</div>
+                        <div class="job-status ${getStatusClass(job)}">
+                            ${getStatusText(job)}
+                        </div>
+                    </div>
+
+                    <div class="job-details">
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">الطباع:</span>
+                            <span class="job-detail-value">${job.printerName}</span>
+                        </div>
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">الكمية:</span>
+                            <span class="job-detail-value">${job.totalQuantity}</span>
+                        </div>
+                        ${job.details ? `
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">التفاصيل:</span>
+                            <span class="job-detail-value">${job.details}</span>
+                        </div>
+                        ` : ''}
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">التاريخ:</span>
+                            <span class="job-detail-value">${new Date(job.createdAt).toLocaleDateString('ar-EG')}</span>
+                        </div>
+                    </div>
+
+                    <div class="job-actions">
+                        ${job.status !== 'completed' ? `
+                        <button class="btn btn-success" onclick="completeJob(${job.id})">
+                            ✅ إكمال
+                        </button>
+                        ` : `
+                        <div style="background: #10b981; color: white; padding: 8px 16px; border-radius: 8px; text-align: center;">
+                            ✅ مكتمل
+                        </div>
+                        `}
+                        <button class="btn btn-danger" onclick="deleteJob(${job.id})">
+                            🗑️ حذف
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // تصفية الأعمال
+        function filterJobs() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            if (!searchTerm) {
+                filterByStatus(currentFilter);
+                return;
+            }
+
+            const filteredJobs = jobs.filter(job =>
+                job.name.toLowerCase().includes(searchTerm) ||
+                job.printerName.toLowerCase().includes(searchTerm) ||
+                job.details.toLowerCase().includes(searchTerm)
+            );
+
+            displayFilteredJobs(filteredJobs);
+        }
+
+        // تحديث الإحصائيات
+        function updateStats() {
+            document.getElementById('totalJobs').textContent = jobs.length;
+            document.getElementById('pendingJobs').textContent = jobs.filter(j => j.status === 'pending').length;
+            document.getElementById('inProgressJobs').textContent = jobs.filter(j => j.status === 'in-progress').length;
+            document.getElementById('completedJobs').textContent = jobs.filter(j => j.status === 'completed').length;
+        }
+
+        // الحصول على فئة الحالة
+        function getStatusClass(job) {
+            if (job.status === 'completed') return 'status-completed';
+            if (job.status === 'in-progress') return 'status-progress';
+            if (job.isUrgent) return 'status-urgent';
+            return 'status-pending';
+        }
+
+        // الحصول على نص الحالة
+        function getStatusText(job) {
+            const statusMap = {
+                'pending': 'في الانتظار',
+                'in-progress': 'قيد الطباعة',
+                'completed': 'مكتمل'
+            };
+
+            let statusText = statusMap[job.status] || job.status;
+            if (job.isUrgent && job.status !== 'completed') {
+                statusText += ' ⚡';
+            }
+
+            return statusText;
+        }
+
+        // إضافة طباع جديد
+        function addPrinter(event) {
+            event.preventDefault();
+
+            const printer = {
+                id: Date.now(),
+                name: document.getElementById('printerName').value.trim(),
+                phone: document.getElementById('printerPhone').value.trim(),
+                specialty: document.getElementById('printerSpecialty').value.trim(),
+                createdAt: new Date().toISOString()
+            };
+
+            if (!printer.name) {
+                showMessage('❌ يرجى إدخال اسم الطباع', 'error');
+                return;
+            }
+
+            printers.push(printer);
+            saveData();
+            displayPrinters();
+            updatePrintersDropdown();
+            clearPrinterForm();
+
+            showMessage('✅ تم إضافة الطباع بنجاح!', 'success');
+        }
+
+        // عرض الطباعين
+        function displayPrinters() {
+            const container = document.getElementById('printersList');
+
+            if (printers.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👨‍💼</div>
+                        <h3>لا يوجد طباعين</h3>
+                        <p>ابدأ بإضافة طباع جديد</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = printers.map(printer => `
+                <div class="job-card" style="margin-bottom: 15px;">
+                    <div class="job-header">
+                        <div class="job-title">👤 ${printer.name}</div>
+                        <div class="job-status status-completed">نشط</div>
+                    </div>
+
+                    <div class="job-details">
+                        ${printer.phone ? `
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">الهاتف:</span>
+                            <span class="job-detail-value">${printer.phone}</span>
+                        </div>
+                        ` : ''}
+                        ${printer.specialty ? `
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">التخصص:</span>
+                            <span class="job-detail-value">${printer.specialty}</span>
+                        </div>
+                        ` : ''}
+                        <div class="job-detail-row">
+                            <span class="job-detail-label">تاريخ الإضافة:</span>
+                            <span class="job-detail-value">${new Date(printer.createdAt).toLocaleDateString('ar-EG')}</span>
+                        </div>
+                    </div>
+
+                    <div class="job-actions">
+                        <button class="btn btn-danger" onclick="deletePrinter(${printer.id})">
+                            🗑️ حذف
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // حذف طباع
+        function deletePrinter(printerId) {
+            const printer = printers.find(p => p.id === printerId);
+            if (!printer) return;
+
+            if (!confirm(`هل أنت متأكد من حذف الطباع: "${printer.name}"؟`)) return;
+
+            printers = printers.filter(p => p.id !== printerId);
+            saveData();
+            displayPrinters();
+            updatePrintersDropdown();
+            showMessage('✅ تم حذف الطباع بنجاح', 'success');
+        }
+
+        // تحديث قائمة الطباعين المنسدلة
+        function updatePrintersDropdown() {
+            const select = document.getElementById('printerNameSelect');
+            if (select) {
+                select.innerHTML = '<option value="">اختر الطباع...</option>' +
+                    printers.map(printer => `<option value="${printer.name}">${printer.name}</option>`).join('');
+            }
+        }
+
+        // تحميل طباعين تجريبيين
+        function loadSamplePrinters() {
+            if (printers.length === 0) {
+                printers = [
+                    {
+                        id: 1,
+                        name: 'أحمد محمد',
+                        phone: '01234567890',
+                        specialty: 'طباعة ديجيتال',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        name: 'محمد علي',
+                        phone: '01098765432',
+                        specialty: 'طباعة أوفست',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                saveData();
+                updatePrintersDropdown();
+            } else {
+                updatePrintersDropdown();
+            }
+        }
+
+        // حفظ البيانات
+        function saveData() {
+            localStorage.setItem('modernPrintingJobs', JSON.stringify(jobs));
+            localStorage.setItem('modernPrintingPrinters', JSON.stringify(printers));
+            localStorage.setItem('modernPrintingJobCounter', jobCounter);
+        }
+
+        // مسح النموذج
+        function clearForm() {
+            document.getElementById('jobForm').reset();
+        }
+
+        // مسح نموذج الطباع
+        function clearPrinterForm() {
+            document.getElementById('printerForm').reset();
+        }
+
+        // عرض رسالة
+        function showMessage(text, type) {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+
+            setTimeout(() => {
+                messagesDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // إضافة زر تثبيت PWA
+        let deferredPrompt;
+
+        function addInstallPrompt() {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                console.log('💾 يمكن تثبيت التطبيق');
+                e.preventDefault();
+                deferredPrompt = e;
+
+                // إضافة زر التثبيت
+                const installButton = document.createElement('button');
+                installButton.innerHTML = '📱 تثبيت التطبيق';
+                installButton.className = 'btn btn-primary';
+                installButton.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    z-index: 1000;
+                    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+                    animation: pulse 2s infinite;
+                `;
+
+                installButton.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+
+                        if (outcome === 'accepted') {
+                            showMessage('✅ تم تثبيت التطبيق بنجاح!', 'success');
+                        } else {
+                            showMessage('❌ تم إلغاء التثبيت', 'error');
+                        }
+
+                        deferredPrompt = null;
+                        installButton.remove();
+                    }
+                });
+
+                document.body.appendChild(installButton);
+
+                // إضافة تأثير النبض
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes pulse {
+                        0% { transform: scale(1); }
+                        50% { transform: scale(1.05); }
+                        100% { transform: scale(1); }
+                    }
+                `;
+                document.head.appendChild(style);
+            });
+
+            // التحقق من التثبيت
+            window.addEventListener('appinstalled', () => {
+                console.log('✅ تم تثبيت التطبيق');
+                showMessage('🎉 تم تثبيت التطبيق بنجاح! يمكنك الآن استخدامه من سطح المكتب', 'success');
+                deferredPrompt = null;
+            });
+        }
+
+        // إضافة دعم الاختصارات
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + N = إضافة عمل جديد
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                switchTab('add-job');
+                document.getElementById('jobName').focus();
+            }
+
+            // Ctrl/Cmd + S = حفظ
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveData();
+                showMessage('💾 تم الحفظ', 'success');
+            }
+
+            // Ctrl/Cmd + F = البحث
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // إضافة دعم الوضع المظلم
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // تحميل الوضع المظلم المحفوظ
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        console.log('🖨️ نظام إدارة الطباعة الحديث جاهز');
+    </script>
+</body>
+</html>
